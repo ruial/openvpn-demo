@@ -1,0 +1,23 @@
+---
+- hosts: openvpn
+  become: yes
+
+  tasks:
+  - name: install packages
+    package:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - epel-release
+      - firewalld
+      - easy-rsa
+      - openvpn
+
+  - name: easy-rsa
+    include_tasks: tasks/easyrsa.yml
+
+  - name: openvpn
+    include_tasks: tasks/openvpn.yml
+
+  handlers:
+    - include: handlers/main.yml

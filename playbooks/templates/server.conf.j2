@@ -1,0 +1,19 @@
+proto udp
+port 1194
+dev tun
+server 10.200.0.0 255.255.255.0
+topology subnet
+persist-key
+persist-tun
+keepalive 10 60
+push "redirect-gateway def1 bypass-dhcp"
+
+dh    {{ easyrsa_dest }}/pki/dh.pem
+ca    {{ easyrsa_dest }}/pki/ca.crt
+cert  {{ easyrsa_dest }}/pki/issued/server.crt
+key   {{ easyrsa_dest }}/pki/private/server.key
+
+user  nobody
+group nobody
+verb 3
+log-append /var/log/openvpn.log

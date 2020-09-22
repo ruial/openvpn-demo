@@ -1,0 +1,59 @@
+- name: set easy-rsa out dir
+  set_fact:
+    easyrsa_dest: "{{ openvpn_dir }}/easy-rsa"
+
+- name: copy easy-rsa directory
+  copy:
+    src: /usr/share/easy-rsa/3/
+    dest: "{{ easyrsa_dest }}"
+    remote_src: yes
+
+- name: init pki
+  command: ./easyrsa init-pki
+  args:
+    chdir: "{{easyrsa_dest}}"
+    creates: "{{easyrsa_dest}}/pki"
+
+- name: build CA
+  shell: echo 'Easy-RSA CA' | ./easyrsa build-ca nopass
+  args:
+    chdir: "{{easyrsa_dest}}"
+    creates: "{{easyrsa_dest}}/pki/private/ca.key"
+
+- name: generate DH key
+  command: ./easyrsa gen-dh
+  args:
+    chdir: "{{easyrsa_dest}}"
+    creates: "{{easyrsa_dest}}/pki/dh.pem"
+
+- name: build server certificate
+  command: ./easyrsa build-server-full server nopass
+  args:
+    chdir: "{{easyrsa_dest}}"
+    creates: "{{easyrsa_dest}}/pki/issued/server.crt"
+
+- name: build client certificate
+  command: ./easyrsa build-client-full client nopass
+  args:
+    chdir: "{{easyrsa_dest}}"
+    creates: "{{easyrsa_dest}}/pki/issued/client.crt"
+
+- name: register client data
+  slurp:
+    src: "{{easyrsa_dest}}/{{item}}"
+  with_items:
+    - "pki/ca.crt"
+    - "pki/issued/client.crt"
+    - "pki/private/client.key"
+  register: client_data
+
+- name: create client config file
+  template:
+    src: client.conf.j2
+    dest: "{{ openvpn_dir }}/client.conf"
+
+- name: copy client config file
+  fetch:
+    src: "{{ openvpn_dir }}/client.conf"
+    dest: "{{ client_dir }}/client-{{ ansible_host }}.conf"
+    flat: yes

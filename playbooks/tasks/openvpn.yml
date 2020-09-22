@@ -1,0 +1,43 @@
+- debug: var=ansible_all_ipv4_addresses
+- debug: var=ansible_default_ipv4.address
+- debug: var=ansible_default_ipv4.interface
+- debug: var=ansible_host
+
+- name: enable IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: yes
+
+- name: enable firewalld
+  service:
+    name: firewalld
+    enabled: yes
+    state: started
+
+- name: allow openvpn port
+  firewalld:
+    port: "1194/udp"
+    permanent: yes
+    immediate: yes
+    state: enabled
+
+- name: enable masquerading on default zone
+  firewalld:
+    masquerade: yes
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: create server config file
+  template:
+    src: server.conf.j2
+    dest: "{{ openvpn_dir }}/server.conf"
+  notify:
+    - restart openvpn
+
+- name: openvpn service started and enabled
+  service:
+    name: openvpn-server@server
+    enabled: yes
+    state: started
